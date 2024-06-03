@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Mapbox with ArcGIS FeatureLayer Toggles</title>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+    .toggle-container {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+      background-color: #007bff;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .toggle-label {
+      color: white;
+      margin-right: 10px;
+    }
+    .toggle-checkbox {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div class="toggle-container">
+  <label class="toggle-label" for="fill-toggle">Toggle Fill Layer</label>
+  <input class="toggle-checkbox" type="checkbox" id="fill-toggle" checked>
+  <label class="toggle-label" for="line-toggle">Toggle Line Layer</label>
+  <input class="toggle-checkbox" type="checkbox" id="line-toggle" checked>
+</div>
+
+<script>
+  mapboxgl.accessToken = '{{ token }}';
+  var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v11',
+    center: [2.3522219, 48.856614],
+    zoom: 14
+  });
+
+  // Define base URL and postfix
+  const baseUrl = '{{ url }}';
+  const postfix = '/0/query?f=geojson&where=1=1&outFields=*&outSR=4326';
+
+  // fetch Feature Layer and request for geojson response
+  async function fetchFeatureLayer() {
+    const url = baseUrl + postfix;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
+  }
+
+  var fillLayer, lineLayer;
+  map.on('load', async () => {
+    const featureLayerData = await fetchFeatureLayer();
+
+    // Add Data source to map
+    map.addSource('arcgis-layer', {
+      type: 'geojson',
+      data: featureLayerData
+    });
+
+    // ADD fill layer to map
+    map.addLayer({
+      id: 'arcgis-layer-fill',
+      type: 'fill',
+      source: 'arcgis-layer',
+      layout: {},
+      paint: {
+        'fill-color': '#088',
+        'fill-opacity': 0.5
+      }
+    });
+
+    // ADD line layer to map
+    map.addLayer({
+      id: 'arcgis-layer-line',
+      type: 'line',
+      source: 'arcgis-layer',
+      layout: {},
+      paint: {
+        'line-color': '#000',
+        'line-width': 2
+      }
+    });
+
+    fillLayer = map.getLayer('arcgis-layer-fill');
+    lineLayer = map.getLayer('arcgis-layer-line');
+  });
+
+  // Event fill layer toggle checkbox
+  document.getElementById('fill-toggle').addEventListener('change', function(e) {
+    if (e.target.checked) {
+      map.setLayoutProperty('arcgis-layer-fill', 'visibility', 'visible');
+    } else {
+      map.setLayoutProperty('arcgis-layer-fill', 'visibility', 'none');
+    }
+  });
+
+  // Event line layer toggle checkbox
+  document.getElementById('line-toggle').addEventListener('change', function(e) {
+    if (e.target.checked) {
+      map.setLayoutProperty('arcgis-layer-line', 'visibility', 'visible');
+    } else {
+      map.setLayoutProperty('arcgis-layer-line', 'visibility', 'none');
+    }
+  });
+</script>
+
+</body>
+</html>
